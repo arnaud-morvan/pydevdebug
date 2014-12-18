@@ -20,11 +20,19 @@
  *                                                                         *
  ***************************************************************************/
 """
+
+import sys
+import os.path
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 # Initialize Qt resources from file resources.py
 import resources_rc
-import os.path
+
+
+try:
+    import pydevd
+except:
+    pydevd = None
 
 
 class PydevDebugPlugin:
@@ -78,14 +86,19 @@ class PydevDebugPlugin:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        action = QAction(QIcon(':/plugins/PydevDebug/icon.png'),
-                         self.tr(u'Start pydevd debugging'),
-                         self.iface.mainWindow())
-        action.triggered.connect(self.run)
+        if pydevd is not None:
+            action = QAction(QIcon(':/plugins/PydevDebug/icon.png'),
+                             self.tr(u'Start pydevd debugging'),
+                             self.iface.mainWindow())
+            action.triggered.connect(self.startDebug)
+            self.iface.addPluginToMenu(self.menu, action)
+            self.iface.addToolBarIcon(action)
 
-        self.iface.addPluginToMenu(
-            self.menu,
-            action)
+        action = QAction(QIcon(':/plugins/PydevDebug/icon.png'),
+                         self.tr(u'Print settings'),
+                         self.iface.mainWindow())
+        action.triggered.connect(self.printSettings)
+        self.iface.addPluginToMenu(self.menu, action)
         self.iface.addToolBarIcon(action)
 
         self.actions.append(action)
@@ -98,16 +111,9 @@ class PydevDebugPlugin:
                 action)
             self.iface.removeToolBarIcon(action)
 
+    def startDebug(self):
+        pydevd.settrace(suspend=False)
 
-    def run(self):
-        """Run method that performs all the real work"""
-        import sys
-        sys.path.append("/home/amorvan/.eclipse"
-                "/org.eclipse.platform_3.8_155965261/plugins"
-                "/org.python.pydev_3.0.0.201311051910/pysrc/")
-        import pydevd
-        pydevd.settrace()
-
-        test = 1
-
-
+    def printSettings(self):
+        for key in QSettings().allKeys():
+            print key, QSettings().value(key)
